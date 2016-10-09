@@ -1,7 +1,7 @@
 {
-  "name": "angular-typescript-webpack",
-  "version": "0.1.2",
-  "description": "A seed project for a largescale angular architecture in webpack and typescript",
+  "name": "code-explorer",
+  "version": "0.0.0",
+  "description": "A project for viewing code",
   "main": "/",
   "scripts": {
     "start": "webpack --config webpack/webpack.dev.js --watch --NODE_ENV=dev",
@@ -9,7 +9,7 @@
     "build": "webpack --config webpack/webpack.build.js --NODE_ENV=production",
     "postinstall": "typings i"
   },
-  "author": "Brecht Billiet <billietbrecht@gmail.com>",
+  "author": "Charles Yeh <charles@eactiv.com.com>",
   "license": "MIT",
   "dependencies": {
     "angular": "1.5.5",
