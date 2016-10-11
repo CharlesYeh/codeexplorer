@@ -1,4 +1,4 @@
-export class TwitterApplicationComponent implements ng.IComponentOptions{
+export class CodeViewerApplicationComponent implements ng.IComponentOptions{
     public template: string = `
         <nav class="navbar navbar-inverse navbar-fixed-top">
             <div class="container-fluid">
