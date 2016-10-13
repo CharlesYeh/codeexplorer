@@ -1,15 +1,30 @@
 export class PageExplorerComponent implements ng.IComponentOptions {
     public controller: Function = PageExplorerController;
     public template: string = `
-    <div ng-repeat="line in $ctrl.code track by $index">
-        <div ng-click="$ctrl.clickLine($index)">{{line}}</div>
+
+    TODO
+    <call-tree tree="$ctrl.prestack">{{line}}</call-tree>
+    <hr />
+    <call-tree tree="$ctrl.stack">{{line}}</call-tree>
+    <hr />
+    <div ng-repeat="line in $ctrl.code track by $index"
+        ng-click="$ctrl.clickLine($index)">
+        <pre>{{line}}</pre>
     </div>`;
 }
 
 export class PageExplorerController {
-    classes = [];
+    // code and AST tree
     code = [];
-    lineToCode = {};
+    astTree = [];
+
+    mapLineToCode = {};
+    mapNameToCode = {};
+    mapCallTargetToCode = {};
+
+    // current function stack
+    prestack = [];
+    stack = [];
 
     constructor() {
         this.code = `
@@ -41,7 +56,8 @@ export class PageExplorerController {
             }
         }`.split("\n");
 
-        this.classes = [{
+        this.astTree = [{
+            "line": 1,
             "type": "class",
             "name": "DataSetPersistenceWorker",
             "methods": [{
@@ -55,6 +71,7 @@ export class PageExplorerController {
                 }]
             }, {
                 "line": 6,
+                "type": "method",
                 "name": "processItem",
                 "statements": [{
                     "type": "branch",
@@ -72,6 +89,7 @@ export class PageExplorerController {
                 }]
             }, {
                 "line": 13,
+                "type": "method",
                 "name": "processCreate",
                 "statements": [{
                     "line": 14,
@@ -90,6 +108,7 @@ export class PageExplorerController {
             "name": "ManagedDataSetPersistenceTask",
             "methods": [{
                 "line": 20,
+                "type": "method",
                 "name": "persistCreate",
                 "statements": [{
                     "line": 21,
@@ -99,6 +118,7 @@ export class PageExplorerController {
                 }]
             }, {
                 "line": 23,
+                "type": "method",
                 "name": "syncCreateHiveTable",
                 "statements": [{
                     "line": 24,
@@ -113,37 +133,91 @@ export class PageExplorerController {
                 }]
             }]
         }];
-        this.lineToCode = {};
-        this.createCodeIndex(this.classes, this.lineToCode);
+
+        this.createCodeIndex(this.astTree);
     }
 
     public clickLine(index: number) {
-        if (index in this.lineToCode) {
-            console.log(this.lineToCode[index]);
+        if (index in this.mapLineToCode) {
+            let codeBlock = this.mapLineToCode[index];
+            this.stack = [];
+            this.prestack = [];
+
+            this.addCodeBlockToStack(codeBlock);
+            this.addCodeBlockToPrestack(codeBlock);
         }
     }
 
-    createCodeIndex(parseTree, index) {
+    addCodeBlockToPrestack(codeBlock: any) {
+        this.prestack.push(codeBlock.name);
+
+        switch (codeBlock.type) {
+            case "call":
+                if (codeBlock.parentMethod in this.mapNameToCode) {
+                    this.addCodeBlockToPrestack(this.mapNameToCode[codeBlock.parentMethod]);
+                }
+                break;
+            case "method":
+                if (codeBlock.name in this.mapCallTargetToCode) {
+                    this.addCodeBlockToPrestack(this.mapCallTargetToCode[codeBlock.name]);
+                }
+                break;
+            case "branch":
+                this.addCodeBlockToPrestack(codeBlock.branches[0][0]);
+                break;
+        }
+    }
+
+    // add to stack and traverse downwards
+    addCodeBlockToStack(codeBlock: any) {
+        this.stack.push(codeBlock.name);
+        // TODO: branch, multi statement
+        switch (codeBlock.type) {
+            case "call":
+                let callTarget: string = codeBlock.method;
+                if (callTarget in this.mapNameToCode) {
+                    this.addCodeBlockToStack(this.mapNameToCode[callTarget]);
+                }
+                break;
+            case "method":
+                this.addCodeBlockToStack(codeBlock.statements[0]);
+                break;
+            case "branch":
+                this.addCodeBlockToStack(codeBlock.branches[0][0]);
+                break;
+        }
+    }
+
+    createCodeIndex(parseTree) {
         for (var codeClass of parseTree) {
-            index[codeClass['line']] = codeClass;
+            this.mapLineToCode[codeClass['line']] = codeClass;
             for (var method of codeClass['methods']) {
-                this.createCodeIndexMethod(method, index);
+                this.createCodeIndexMethod(method);
+                this.mapNameToCode[method['name']] = method;
             }
         }
     }
 
-    createCodeIndexMethod(method, index) {
-        index[method['line']] = method;
+    createCodeIndexMethod(method) {
+        this.mapLineToCode[method['line']] = method;
         for (var stmt of method['statements']) {
             if (stmt['type'] == "branch") {
                 var branches: Array<any> = stmt['branches'];
                 for (var branch of branches) {
                     for (var bstmt of branch) {
-                        index[bstmt['line']] = bstmt;
+                        // tie statement back to method
+                        bstmt['parentMethod'] = method.name;
+
+                        this.mapLineToCode[bstmt['line']] = bstmt;
+                        this.mapCallTargetToCode[bstmt['method']] = method;
                     }
                 }
             } else {
-                index[stmt['line']] = stmt;
+                // tie statement back to method
+                stmt['parentMethod'] = method.name;
+
+                this.mapLineToCode[stmt['line']] = stmt;
+                this.mapCallTargetToCode[stmt['method']] = method;
             }
         }
     }
