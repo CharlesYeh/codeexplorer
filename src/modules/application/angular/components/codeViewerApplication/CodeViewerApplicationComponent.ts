@@ -9,12 +9,11 @@ export class CodeViewerApplicationComponent implements ng.IComponentOptions{
                         <span class="icon-bar"></span>
                         <span class="icon-bar"></span>
                     </button>
-                    <a class="navbar-brand" href="#/">Tweet app</a>
+                    <a class="navbar-brand" href="#/">Code viewer app</a>
                 </div>
                 <div id="navbar" class="navbar-collapse collapse">
                     <ul class="nav navbar-nav">
-                        <li><a href="#/" title="Tweets">Tweets</a></li>
-                        <li><a href="#/about" title="About">About</a></li>
+                        <li><a href="#/" title="Tweets">Code viewer</a></li>
                     </ul>
                 </div>
             </div>
